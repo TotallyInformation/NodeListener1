@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en"><head>
+	<meta charset="utf-8">
+
+	<title>Node/Ardiuno Listener</title>
+	<meta name="description" content="Node/Ardiuno Listener">
+	<meta name="author" content="Julian Knight">
+
+	<link rel="stylesheet" href="css/styles.css?v=1.0">
+	<style type="text/css">
+		table {
+			border-width: 0 0 1px 1px;
+			border-spacing: 0;
+			border-collapse: collapse;
+			border-style: solid;
+		}
+		td, th {
+		    margin: 0;
+		    padding: 4px;
+		    border-width: 1px 1px 0 0;
+		    border-style: solid;
+		}
+	</style>
+
+	<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+	<script src="//cdnjs.cloudflare.com/ajax/libs/knockout/2.3.0/knockout-min.js"></script>
+
+	<script src="libraries/RGraph.common.core.js"></script>
+	<script src="libraries/RGraph.common.dynamic.js"></script>   <!-- Just needed for dynamic features (eg tooltips) -->
+
+	<script src="libraries/RGraph.common.annotate.js"></script>  <!-- Just needed for annotating -->
+	<script src="libraries/RGraph.common.context.js"></script>   <!-- Just needed for context menus -->
+	<script src="libraries/RGraph.common.effects.js"></script>   <!-- Just needed for visual effects -->
+	<script src="libraries/RGraph.common.key.js"></script>       <!-- Just needed for keys -->
+	<script src="libraries/RGraph.common.resizing.js"></script>  <!-- Just needed for resizing -->
+	<script src="libraries/RGraph.common.tooltips.js"></script>  <!-- Just needed for tooltips -->
+	<script src="libraries/RGraph.common.zoom.js"></script>      <!-- Just needed for zoom -->
+
+	<script src="libraries/RGraph.bar.js"></script>              <!-- Just needed for Bar charts -->
+	<script src="libraries/RGraph.bipolar.js"></script>          <!-- Just needed for Bi-polar charts -->
+	<script src="libraries/RGraph.cornergauge.js"></script>      <!-- Just needed for CornerGauge charts -->
+	<script src="libraries/RGraph.fuel.js"></script>             <!-- Just needed for Fuel charts -->
+	<script src="libraries/RGraph.funnel.js"></script>           <!-- Just needed for Funnel charts -->
+	<script src="libraries/RGraph.gantt.js"></script>            <!-- Just needed for Gantt charts -->
+	<script src="libraries/RGraph.gauge.js"></script>            <!-- Just needed for Gauge charts -->
+	<script src="libraries/RGraph.hbar.js"></script>             <!-- Just needed for Horizontal Bar charts -->
+	<script src="libraries/RGraph.hprogress.js"></script>        <!-- Just needed for Horizontal Progress bars -->
+	<script src="libraries/RGraph.led.js"></script>              <!-- Just needed for LED charts -->
+	<script src="libraries/RGraph.line.js"></script>             <!-- Just needed for Line charts -->
+	<script src="libraries/RGraph.meter.js"></script>            <!-- Just needed for Meter charts -->
+	<script src="libraries/RGraph.odo.js"></script>              <!-- Just needed for Odometers -->
+	<script src="libraries/RGraph.pie.js"></script>              <!-- Just needed for Pie AND Donut charts -->
+	<script src="libraries/RGraph.radar.js"></script>            <!-- Just needed for Radar charts -->
+	<script src="libraries/RGraph.rose.js"></script>             <!-- Just needed for Rose charts -->
+	<script src="libraries/RGraph.rscatter.js"></script>         <!-- Just needed for Rscatter charts -->
+	<script src="libraries/RGraph.scatter.js"></script>          <!-- Just needed for Scatter charts -->
+	<script src="libraries/RGraph.thermometer.js"></script>      <!-- Just needed for Thermometer charts -->
+	<script src="libraries/RGraph.vprogress.js"></script>        <!-- Just needed for Vertical Progress bars -->
+	<script src="libraries/RGraph.waterfall.js"></script>        <!-- Just needed for Waterfall charts  -->
+
+	<!--[if lt IE 9]>
+	<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<![endif]-->
+</head><body>
+	<h2>Data from Arduino <span data-bind="text: uid"></span></h2>
+	<canvas id="myCanvas" width="600" height="250">[No canvas support]</canvas>
+	<canvas id="cvsTemp" width="80" height="250">[No canvas support]</canvas>
+	<button data-bind="click: btnClick">Click me</button>
+	<ul id="msg"></ul>
+	<ul id="error"></ul>
+
+	<table>
+		<thead>
+			<tr>
+				<th colspan="2">Temperature</th>
+				<th colspan="2">Humidity</th>
+				<th colspan="2">Light</th>
+				<th>Battery</th>
+				<th>Pi</th>
+			</tr>
+			<tr>
+				<th>Max</th>
+				<th>Min</th>
+				<th>Max</th>
+				<th>Min</th>
+				<th>Max</th>
+				<th>Min</th>
+				<th>&nbsp;</th>
+				<th>Temp</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td data-bind="text: tMax"></td>
+				<td data-bind="text: tMin"></td>
+				<td data-bind="text: hMax"></td>
+				<td data-bind="text: hMin"></td>
+				<td data-bind="text: lMax"></td>
+				<td data-bind="text: lMin"></td>
+				<td data-bind="text: batt"></td>
+				<td data-bind="text: PiTemp"></td>
+			</tr>
+		</tbody>
+	</table>
+
+	<div data-bind='text: items().length'>Length: &nbsp;</div>
+	<table>
+		<thead>
+			<tr>
+				<th title="How many times has the Arduino gone through the loop?">Counter</th>
+				<th title="The time registered by the listner for these entries">Time</th>
+				<th title="How long (secs) since the last time through the loop">Loop Time</th>
+				<th title="Sensor temperature in degrees celcius">Temperature</th>
+				<th title="Humidity at sensor in percent">Humidity</th>
+				<th title="Calculated approx. Dew Point in degrees celcius">Dew Point</th>
+				<th title="Light measured by sensor">Light</th>
+				<th title="Was motion detected?">Motion</th>
+				<th title="Battery status of the Arduino (Volts)">Battery</th>
+			</tr>
+		</thead>
+		<tbody data-bind="foreach: items">
+			<tr>
+				<td data-bind="text: loopCount"></td>
+				<td data-bind="text: timeStr"></td>
+				<td data-bind="text: loopTime"></td>
+				<td data-bind="text: temperature"></td>
+				<td data-bind="text: humidity"></td>
+				<td data-bind="text: dewPoint"></td>
+				<td data-bind="text: light"></td>
+				<td data-bind="text: motion"></td>
+				<td data-bind="text: battery"></td>
+			</tr>
+		</tbody>
+	</table>
+
+	<!--<pre data-bind="text: ko.toJSON($root, null, 2)"></pre>-->
+	<!--<input data-bind="blah: console.log($data)" />-->
+
+	<script>
+		//var socket;
+		var prevTime = 0;
+		//var dataLog = ko.observableArray();    // Initially an empty array
+		//var dataAdapter;
+		var dataTemp = [];
+		var dataHum = [];
+		var dataLabel = [];
+		var bar;
+		var tempGauge;
+		var canvas    = document.getElementById("myCanvas");
+		var canvasT   = document.getElementById("cvsTemp");
+
+		function chartUpdate() {
+	        RGraph.Clear(canvas);
+			if (!bar) {
+				bar = new RGraph.Line('myCanvas', dataTemp, dataHum)
+					.Set('title.yaxis', 'Celcius/%')
+					//.Set('title.yaxis.pos', 0.5)
+					.Set('title.xaxis', 'Time (s)')
+					.Set('title.xaxis.pos', 0.5)
+					.Set('title', 'Temperature & Humidity Log')
+					.Set('title.vpos', 0.5)
+					.Set('linewidth',1)
+					//.Set('xticks', 10)
+					.Set('shadow', 1)
+					.Set('chart.filled', true)
+					.Set('chart.filled.accumulative', false)
+					.Set('chart.fillstyle', ['rgba(255,0,0,0.3)', 'rgba(0,0,255,0.3)'])
+					.Set('chart.text.size', 7)
+					.Set('chart.gutter.left', 35)
+					//.Set('chart.tickmarks', 'circle')
+					//.Set('chart.tickmarks.linewidth', 0.2)
+	                .Set('key', ['Temperature', 'Humidity'])
+	                .Set('key.position', 'gutter')
+	                .Set('key.position.gutter.boxed', false)
+	                .Set('key.position.x', 275);
+			} 
+			bar.Set('chart.labels', dataLabel);
+			bar.original_data[0] = dataTemp;
+			bar.original_data[1] = dataHum;
+			bar.Draw();
+		};
+
+		function tempUpdate(temp) {
+			RGraph.Clear(canvasT);
+			if (!tempGauge) {
+				tempGauge = new RGraph.VProgress('cvsTemp', 0,40,0)
+					.Set('chart.arrows', true)
+					.Set('chart.shadow', true)
+					.Set('chart.title.side', 'Temperature *C')
+			} 
+			tempGauge.value = temp;
+			tempGauge.Draw();
+		};
+
+		var DataModel = function() {
+			var self = this; // make sure we always have access to the correct context
+
+			// Place to hold the dynamic data
+			self.items = ko.observableArray();
+			self.tMin = ko.observable(9999);
+			self.tMax = ko.observable(0);
+			self.hMin = ko.observable(9999);
+			self.hMax = ko.observable(0);
+			self.lMin = ko.observable(9999);
+			self.lMax = ko.observable(0);
+			self.batt = ko.observable();
+			self.PiTemp = ko.observable();
+			self.uid = ko.observable();
+
+			self.btnClick = function(data,event) {
+				console.log('DATA', data);
+				console.log('EVENT', event);
+				console.log('ITEMS', self.items());
+				console.log('ITEMS[0]', self.items()[0]);
+				console.log('MINMAX', self.minMax());
+			}
+
+			var socket = io.connect(''); // connect to same io server as http server
+
+			// The serial listener detects new data and sends it on
+			socket.on('arduino', function (recievedData) {
+				//console.log(recievedData.ardData);
+				//console.log( parseArdMsg(recievedData.ardData) );
+				
+				// Gets the JSON from the io message
+				// and gives it to the addItem fn
+				self.addItem( parseArdMsg(recievedData.ardData) );
+			});
+			
+			socket.on('PiTemp', function (rData) {
+				//console.log('PiTemp', rData);
+				self.PiTemp(rData.PiTemp);
+				//console.log( parseArdMsg(recievedData.ardData) );
+				//self.addItem( parseArdMsg(recievedData.ardData) );
+			});
+			
+			socket.on('disconnect', function () {
+				$("#error").html('DISCONNECTED');
+				//setTimeout('window.location.reload()', 3000);
+			});
+			
+			socket.on('connect_failed', function () {
+				$("#error").html('CONNECT FAILED');
+			});
+			socket.on('error', function () {
+				$("#error").html('ERROR');
+			});
+			socket.on('reconnect_failed', function () {
+				$("#error").html('RECONNECT FAILED');
+			});
+			socket.on('reconnecting', function () {
+				$("#error").html('RECONNECTING');
+			});
+			socket.on('reconnect', function () {
+				$("#error").html('RECONNECTED');
+			});
+			
+			// Take the JSON from Socket IO and push
+			// to the Knockout data object
+			self.addItem = function( myItem ) {
+				//console.log( myItem );
+				self.items.unshift( myItem ); // add to the start
+
+				// Arduino ID
+				self.uid(myItem.uid);
+
+				// data for charts
+				dataTemp.push(myItem.temperature);
+				dataHum.push(myItem.humidity);
+
+				// max/min
+				if ( myItem.temperature > self.tMax() ) {
+					self.tMax(myItem.temperature);
+					//console.log("tMax", self.tMax(), myItem.temperature);
+				}
+				if ( myItem.temperature < self.tMin() ) {
+					self.tMin(myItem.temperature);
+					//console.log("tMin", self.tMin, myItem.temperature);
+				}
+
+				if ( myItem.humidity > self.hMax() ) {
+					self.hMax(myItem.humidity);
+				}
+				if ( myItem.humidity < self.hMin() ) {
+					self.hMin(myItem.humidity);
+				}
+
+				if ( myItem.light > self.lMax() ) {
+					self.lMax(myItem.light);
+				}
+				if ( myItem.light < self.lMin() ) {
+					self.lMin(myItem.light);
+				}
+				self.batt(myItem.battery);
+
+				// restrict labels on line chart to start and end of chart
+				if (dataLabel.length == 2) {
+					dataLabel[1] = myItem.elapsed;
+				} else {
+					dataLabel.push(myItem.elapsed);
+				}
+
+				// Update the charts
+				chartUpdate();
+				tempUpdate(myItem.temperature);
+			};
+
+   		} // ---- End of DataModel ----
+
+		function parseArdMsg(msg) {
+			//msg = msg.trim();
+			//if ( msg.substring(0,1) == '{' ) {
+				//return parseArdMsgJSON(msg);
+				console.log(msg);
+				// Check for a message in the data
+				if ( msg.msg ) $("#msg").html( msg.msg );
+				return msg;
+		/*	} else {
+				$("#msg").html('Invalid Arduino Message - unknown msg type - should be JSON - see browser log');
+				console.log("ERROR: Invalid Arduino Message - unknown msg type - should be JSON");
+				console.log(msg);
+				return {};
+			}*/
+		} // ------- End of Function parseArdMsg ------- //
+		function parseArdMsgJSON(msg) {
+			var obj = jQuery.parseJSON( msg );
+			//var obj = msg;
+			//if ( obj.loopCount == 1) return {};
+
+			//ìf (!obj.light) {
+				obj.light = 0;
+			//}
+			//ìf (!obj.motion) {
+				obj.motion = 0;
+			//}
+			console.log(obj);
+			
+			if(typeof obj.time!='undefined'){ //Check if there is a time element - there always should be
+				var thisLog = {};
+				// Walk through each key in the parsed JSON
+				jQuery.each(obj, function (index, value) {
+					//console.log(index, value);
+					switch(index) {
+						case "time":
+							// The arduino millsec timer rolls over approx every 70d
+							thisLog[index] = value;
+							break;
+						case "light":
+							// High is dark, low is light so lets invert
+							value = parseFloat((1000/value - 0.98).toFixed(2));
+							thisLog['light'] = value;
+							//$("#"+index).html(value);
+							break;
+						case "type":
+							// No action, we don't need this now
+							break;
+						default:
+							//$("#"+index).html(value);
+							thisLog[index] = value;
+					} // End of switch
+				}); // End of each
+				//dataLog.push(thisLog);
+				return thisLog;
+			} else {
+				$("#msg").html('Invalid Arduino Message - no "time" object found - see browser log');
+				console.log("ERROR: Invalid Arduino Message - no 'time' object found");
+				console.log(msg);
+				return {};
+			}
+		} // ------- End of Function parseArdMsgJSON ------- //
+
+		function millisecsToString(ms) {
+			// The arduino millsec timer rolls over approx every 70d
+			var remain;
+			//var years = Math.floor(seconds / 31536000000);
+			//var remain = ms - ( years * 31536000000 );
+			var days = Math.floor( ms / 86400000 );
+			remain = ms - ( days * 86400000 );
+			var hours = Math.floor( remain / 3600000 );
+			remain = remain - ( hours * 3600000 );
+			var min = Math.floor( remain / 60000 );
+			remain = remain - ( min * 60000 );
+			var sec = Math.floor( remain / 1000 );
+			var remain = remain - ( sec * 1000 );
+			return days + "d " + hours + ":" + min + ":" + sec; // + "." + remain;
+		}
+
+		window.onload = function() {
+			//initSocketIO();
+			ko.applyBindings( new DataModel() );
+		};
+
+		$(document).ready(function() {
+
+		});
+	</script>
+</body></html>

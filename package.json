@@ -1,0 +1,21 @@
+{
+  "name": "NodeListener2",
+  "version": "0.0.5",
+  "description": "Get Node to listen to an Arduino over serial port and serve up results",
+  "dependencies": {
+    "supervisor": "latest",
+    "serialport": "latest",
+    "socket.io": "latest",
+    "express": "latest",
+    "jade": "latest",
+    "localStorage": "latest",
+    "json-storage": "latest",
+    "underscore": "latest",
+    "mailparser": "latest",
+    "imap": "latest",
+    "nodemailer": "latest",
+    "winston": "latest",
+    "moment": "latest"
+  },
+  "author": "Julian Knight"
+}
